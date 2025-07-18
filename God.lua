@@ -1,116 +1,39 @@
--- Prison Life - Kill All + God Mode con GUI
--- Uso exclusivo para testeo con admin y en servidores vulnerables
-
 local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
 
-local meleeEvent = ReplicatedStorage:WaitForChild("meleeEvent")
+local player = Players.LocalPlayer
 
--- Variables estado
-local killAllActive = false
-local godModeActive = false
+-- Nombres de admins autorizados para ver y usar el botón
+local admins = {
+    ["gonchii002"] = true,
+    ["AdminEjemplo"] = true,
+}
 
--- Función Kill All
-local function killAll()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            -- Intentar matar player vía meleeEvent
-            pcall(function()
-                meleeEvent:FireServer(player)
-            end)
-        end
-    end
+if not admins[player.Name] then return end
+
+-- Esperar o crear el RemoteEvent
+local killAllEvent = ReplicatedStorage:FindFirstChild("KillAllEvent")
+if not killAllEvent then
+    killAllEvent = Instance.new("RemoteEvent")
+    killAllEvent.Name = "KillAllEvent"
+    killAllEvent.Parent = ReplicatedStorage
 end
 
--- Función God Mode
-local function enableGodMode()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local hum = char:WaitForChild("Humanoid")
+-- Crear GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "AdminKillGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
-    hum.HealthChanged:Connect(function(health)
-        if godModeActive and health < hum.MaxHealth then
-            hum.Health = hum.MaxHealth
-        end
-    end)
+local button = Instance.new("TextButton")
+button.Name = "KillAllButton"
+button.Size = UDim2.new(0,150,0,50)
+button.Position = UDim2.new(0,10,0,10)
+button.BackgroundColor3 = Color3.new(1,0,0)
+button.Text = "KILL ALL INSTANT"
+button.TextColor3 = Color3.new(1,1,1)
+button.Parent = screenGui
 
-    -- Loop constante para mantener salud máxima
-    spawn(function()
-        while godModeActive do
-            if hum.Health < hum.MaxHealth then
-                hum.Health = hum.MaxHealth
-            end
-            task.wait(0.1)
-        end
-    end)
-end
-
--- Crear GUI básica en CoreGui
-local CoreGui = game:GetService("CoreGui")
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AdminTools"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = CoreGui
-
--- Frame
-local Frame = Instance.new("Frame")
-Frame.Size = UDim2.new(0, 200, 0, 120)
-Frame.Position = UDim2.new(0, 20, 0, 20)
-Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Frame.BorderSizePixel = 0
-Frame.Parent = ScreenGui
-Frame.Active = true
-Frame.Draggable = true
-
--- Kill All Button
-local KillBtn = Instance.new("TextButton")
-KillBtn.Size = UDim2.new(0, 180, 0, 50)
-KillBtn.Position = UDim2.new(0, 10, 0, 10)
-KillBtn.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
-KillBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-KillBtn.Text = "Kill All: OFF"
-KillBtn.Font = Enum.Font.GothamBold
-KillBtn.TextSize = 20
-KillBtn.Parent = Frame
-
--- God Mode Button
-local GodBtn = Instance.new("TextButton")
-GodBtn.Size = UDim2.new(0, 180, 0, 50)
-GodBtn.Position = UDim2.new(0, 10, 0, 70)
-GodBtn.BackgroundColor3 = Color3.fromRGB(30, 200, 30)
-GodBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-GodBtn.Text = "God Mode: OFF"
-GodBtn.Font = Enum.Font.GothamBold
-GodBtn.TextSize = 20
-GodBtn.Parent = Frame
-
--- Kill All toggle
-KillBtn.MouseButton1Click:Connect(function()
-    killAllActive = not killAllActive
-    if killAllActive then
-        KillBtn.Text = "Kill All: ON"
-        spawn(function()
-            while killAllActive do
-                killAll()
-                task.wait(0.5)
-            end
-        end)
-    else
-        KillBtn.Text = "Kill All: OFF"
-    end
+button.MouseButton1Click:Connect(function()
+    killAllEvent:FireServer()
 end)
-
--- God Mode toggle
-GodBtn.MouseButton1Click:Connect(function()
-    godModeActive = not godModeActive
-    if godModeActive then
-        GodBtn.Text = "God Mode: ON"
-        enableGodMode()
-    else
-        GodBtn.Text = "God Mode: OFF"
-    end
-end)
-
--- Mensaje inicial
-print("[AdminTools] Script cargado. Usa la GUI para activar Kill All y God Mode.")
